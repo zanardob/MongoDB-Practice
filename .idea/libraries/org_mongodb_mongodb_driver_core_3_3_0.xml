@@ -4,6 +4,8 @@
     <CLASSES>
       <root url="jar://$MAVEN_REPOSITORY$/org/mongodb/mongodb-driver-core/3.3.0/mongodb-driver-core-3.3.0.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/mongodb/bson/3.3.0/bson-3.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/mongodb/mongodb-driver-core/3.3.0/mongodb-driver-core-3.3.0.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/mongodb/bson/3.3.0/bson-3.3.0.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

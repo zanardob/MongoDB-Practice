@@ -1,10 +1,7 @@
 import com.mongodb.BasicDBObject;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.sql.*;
 
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -12,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] argv){
-        createBSON("LE02CIDADE");
+        createBSON("LE12PESQUISA");
     }
 
     /*File criaBSON(String tableName) throws SQLException, ClassNotFoundException {
@@ -69,17 +66,11 @@ public class Main {
                 // Add this foreign key to the list of foreign keys
                 foreignKeys.add(fk);
 
-                /* Legacy code
-                fk.setMyFields(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"));
-                fk.setForeignFields(token.split("^.*\\([\\s\\S]*?\\(|\\)[\\s\\S]*|[\", ]"));
-                */
             } else if(token.startsWith("PRIMARY KEY")){
                 // Get the fields that are used as the primary key
                 // Also removes any empty strings that result from the "split" function call
-                primaryKeys = new ArrayList<>(Arrays.asList(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
-                        .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0])));
-
-
+                primaryKeys = new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
+                        .filter(str -> !str.isEmpty()).collect(Collectors.toList()));
             }
         }
 
@@ -105,7 +96,6 @@ public class Main {
                 BasicDBObject currentObject;
                 BasicDBObject document = new BasicDBObject();
                 BasicDBObject primaryKey = new BasicDBObject();
-                BasicDBObject foreignKey = new BasicDBObject();
 
                 for(int i = 0; i < columnCount; i++) {
                     String currentColumn = columnNames.get(i);
@@ -118,20 +108,30 @@ public class Main {
                         currentObject = document;
                     }
 
+                    Object value;
                     switch(columnTypes.get(i)){
                         case Types.NUMERIC:
-                            currentObject.put(currentColumn, rs.getInt(i+1));
+                            value = rs.getInt(i+1);
+
+                            if (!rs.wasNull())
+                                currentObject.put(currentColumn, value);
                             break;
 
                         case Types.CHAR:
                         case Types.VARCHAR:
-                            currentObject.put(currentColumn, rs.getString(i+1));
+                            value = rs.getString(i+1);
+
+                            if (!rs.wasNull())
+                                currentObject.put(currentColumn, value);
                             break;
 
                         case Types.TIMESTAMP:
-                            long timestamp = rs.getTimestamp(i+1).getTime();
+                            value = rs.getTimestamp(i+1);
 
-                            currentObject.put(currentColumn, new Date(timestamp));
+                            if (!rs.wasNull()) {
+                                long timestamp = ((Timestamp) value).getTime();
+                                currentObject.put(currentColumn, new Date(timestamp));
+                            }
                             break;
                     }
                 }
