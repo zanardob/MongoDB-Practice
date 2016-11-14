@@ -5,149 +5,264 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] argv){
-        createBSON("LE12PESQUISA");
+        ArrayList<BasicDBObject> cidade = createBSON("LE02CIDADE", "ESTADO");
+        ArrayList<BasicDBObject> bairro = createBSON("LE04BAIRRO");
     }
 
-    /*File criaBSON(String tableName) throws SQLException, ClassNotFoundException {
-        //Connection connection = DatabaseConnector.getConnection();
-
-
-
-
-        // Connecta no oracu, pega a tabela e cria o baison dela (retorna um .bson)
-        return null;
-    }
-
-    File criaBSON(String tableName, String tableEmbed){
-        // Connecta no oracu, pega a tabela e cria o baison dela (retorna um .bson)
-        return null;
-    }
-
+    /*
     void insereBSON(String mongoConnection, File bsonFile){
         // Connection connection = MongoConnector.getConnection();
         // Pega o arquivo passado e insere no mongo especificado
-    }*/
+    }
+    */
 
-    private static void createBSON(String tableName) {
-        String tableDDL = null;
+    private static ArrayList<BasicDBObject> createBSON(String tableName) {
+        ArrayList<BasicDBObject> collection = null;
+
         try {
-            tableDDL = DataManager.getTableDDL(tableName);
-        } catch (SQLException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        ArrayList<ForeignKey> foreignKeys = new ArrayList<>();
-        ArrayList<String> primaryKeys = new ArrayList<>();
+            String tableDDL = DataManager.getTableDDL(tableName);
 
-        // This split gets all the constraints
-        String[] constraints = tableDDL.split("CONSTRAINT");
-        constraints = Arrays.copyOfRange(constraints, 1, constraints.length);
+            ArrayList<String> primaryKeys = new ArrayList<>();
 
-        for(String constraint : constraints){
-            // This split removes the name of the constraint
-            String token = constraint.split("^ *\"[^\\\"]*\" ?")[1];
+            // This split gets all the constraints
+            String[] constraints = tableDDL.split("CONSTRAINT");
+            constraints = Arrays.copyOfRange(constraints, 1, constraints.length);
 
-            if(token.startsWith("FOREIGN KEY")){
-                ForeignKey fk = new ForeignKey();
+            for(String constraint : constraints){
+                // This split removes the name of the constraint
+                String token = constraint.split("^ *\"[^\\\"]*\" ?")[1];
 
-                // Splits the token to get the appropriate values needed to access the correct fields on the referenced table
-                // Also removes any empty strings that result from the "split" function call
-                fk.setMyFields(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
-                        .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]));
-
-                fk.setForeignFields(Arrays.stream(token.split("^.*\\([\\s\\S]*?\\(|\\)[\\s\\S]*|[\", ]"))
-                        .filter(str -> !str.isEmpty()).collect(Collectors.toList()).toArray(new String[0]));
-
-                fk.setForeignTable(token.split("^[\\s\\S]*\\.\"|\" [\\S\\s]*")[0]);
-
-                // Add this foreign key to the list of foreign keys
-                foreignKeys.add(fk);
-
-            } else if(token.startsWith("PRIMARY KEY")){
-                // Get the fields that are used as the primary key
-                // Also removes any empty strings that result from the "split" function call
-                primaryKeys = new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
-                        .filter(str -> !str.isEmpty()).collect(Collectors.toList()));
+                if(token.startsWith("PRIMARY KEY")){
+                    // Get the fields that are used as the primary key
+                    // Also removes any empty strings that result from the "split" function call
+                    primaryKeys = new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
+                            .filter(str -> !str.isEmpty()).collect(Collectors.toList()));
+                }
             }
-        }
 
-        try {
             ResultSet rs = DataManager.getData(tableName);
             ResultSetMetaData rsmd = rs.getMetaData();
             int columnCount = rsmd.getColumnCount();
 
             // Builds an ArrayList that contains all the columnNames to be written on the BSON
-            ArrayList<String> columnNames = new ArrayList<>();
-            ArrayList<Integer> columnTypes = new ArrayList<>();
+            ArrayList<ColumnMetadata> tableColumns = new ArrayList<>();
             for(int i = 1; i <= columnCount; i++) {
-                columnNames.add(rsmd.getColumnName(i));
-                columnTypes.add(rsmd.getColumnType(i));
+                tableColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
 
                 // Prints the values for the columnTypes -- DEBUG
-                System.out.println("Type of column " + columnNames.get(i-1) + ": " + columnTypes.get(i-1));
+                // System.out.println("Type of column " + tableColumns.get(i-1).getColumnName() + ": " + tableColumns.get(i-1).getColumnType());
             }
 
             // Iterates over every tuple of the table
-            ArrayList<BasicDBObject> collection = new ArrayList<>();
+            collection = new ArrayList<>();
             while(rs.next()) {
-                BasicDBObject currentObject;
-                BasicDBObject document = new BasicDBObject();
-                BasicDBObject primaryKey = new BasicDBObject();
-
-                for(int i = 0; i < columnCount; i++) {
-                    String currentColumn = columnNames.get(i);
-
-                    if(primaryKeys.contains(currentColumn)) {
-                        // This column is part of the primary key; add it to primaryKey object
-                        currentObject = primaryKey;
-                    } else {
-                        // This is not part of the primary key; add it as another field on the document
-                        currentObject = document;
-                    }
-
-                    Object value;
-                    switch(columnTypes.get(i)){
-                        case Types.NUMERIC:
-                            value = rs.getInt(i+1);
-
-                            if (!rs.wasNull())
-                                currentObject.put(currentColumn, value);
-                            break;
-
-                        case Types.CHAR:
-                        case Types.VARCHAR:
-                            value = rs.getString(i+1);
-
-                            if (!rs.wasNull())
-                                currentObject.put(currentColumn, value);
-                            break;
-
-                        case Types.TIMESTAMP:
-                            value = rs.getTimestamp(i+1);
-
-                            if (!rs.wasNull()) {
-                                long timestamp = ((Timestamp) value).getTime();
-                                currentObject.put(currentColumn, new Date(timestamp));
-                            }
-                            break;
-                    }
-                }
-
-                // Adds the primary key to the document
-                document.put("_id", primaryKey);
+                BasicDBObject document = buildDocument(rs, primaryKeys, tableColumns);
 
                 // Adds the document to the collection
                 collection.add(document);
             }
 
-            // Prints the resulting collection with all the documents -- DEBUG
-            for(BasicDBObject document : collection)
-                System.out.println(document.toString());
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
+        }
+
+        return collection;
+    }
+
+    private static ArrayList<BasicDBObject> createBSON(String tableName, String embedName) {
+        ArrayList<BasicDBObject> collection = null;
+
+        try {
+            String tableDDL = DataManager.getTableDDL(tableName);
+
+            ArrayList<String> primaryKeys = new ArrayList<>();
+            ForeignKey embedKey = new ForeignKey();
+
+            // This split gets all the constraints
+            String[] constraints = tableDDL.split("CONSTRAINT");
+            constraints = Arrays.copyOfRange(constraints, 1, constraints.length);
+
+            boolean foundForeign = false;
+            for(String constraint : constraints){
+                // This split removes the name of the constraint
+                String token = constraint.split("^ *\"[^\\\"]*\" ?")[1];
+
+                if(!foundForeign && token.startsWith("FOREIGN KEY")){
+                    String foreignTable = token.split("^[\\s\\S]*\\.\"|\" [\\S\\s]*")[1];
+
+                    if(foreignTable.contains(embedName)) {
+                        foundForeign = true;
+
+                        // Splits the token to get the appropriate values needed to access the correct fields on the referenced table
+                        // Also removes any empty strings that result from the "split" function call
+                        embedKey.setMyFields(new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
+                                .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
+
+                        embedKey.setForeignFields(new ArrayList<>(Arrays.stream(token.split("^.*\\([\\s\\S]*?\\(|\\)[\\s\\S]*|[\", ]"))
+                                .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
+
+                        embedKey.setForeignTable(foreignTable);
+                    }
+                } else if(token.startsWith("PRIMARY KEY")){
+                    // Get the fields that are used as the primary key
+                    // Also removes any empty strings that result from the "split" function call
+                    primaryKeys = new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
+                            .filter(str -> !str.isEmpty()).collect(Collectors.toList()));
+                }
+            }
+
+            ResultSet rs = DataManager.getData(embedKey.getForeignTable());
+            ResultSetMetaData rsmd = rs.getMetaData();
+            int columnCount = rsmd.getColumnCount();
+
+            // Builds an ArrayList that contains all the columnNames to be written on the BSON
+            ArrayList<ColumnMetadata> embedColumns = new ArrayList<>();
+            for(int i = 1; i <= columnCount; i++) {
+                embedColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
+
+                // Prints the values for the columnTypes -- DEBUG
+                // System.out.println("Type of embed column " + embedColumns.get(i-1).getColumnName() + ": " + embedColumns.get(i-1).getColumnType());
+            }
+
+            rs = DataManager.getData(tableName);
+            rsmd = rs.getMetaData();
+            columnCount = rsmd.getColumnCount();
+
+            // Builds an ArrayList that contains all the columnNames to be written on the BSON
+            ArrayList<ColumnMetadata> tableColumns = new ArrayList<>();
+            for(int i = 1; i <= columnCount; i++) {
+                tableColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
+
+                // Prints the values for the columnTypes -- DEBUG
+                // System.out.println("Type of column " + tableColumns.get(i-1).getColumnName() + ": " + tableColumns.get(i-1).getColumnType());
+            }
+
+            // Removes the fields that are part of the foreign relation that is going to be embedded
+            for(String field : embedKey.getMyFields()){
+                if(primaryKeys.contains(field)){
+                    primaryKeys.remove(field);
+                    embedKey.composesPrimary = true;
+
+                    for(ColumnMetadata c : tableColumns)
+                        if(Objects.equals(c.getColumnName(), field))
+                            c.active = false;
+                }
+            }
+
+            // Iterates over every tuple of the table
+            collection = new ArrayList<>();
+            while(rs.next()) {
+                ArrayList<String> values = new ArrayList<>();
+                for(int i = 0; i < columnCount; i++) {
+                    if(embedKey.getMyFields().contains(tableColumns.get(i).getColumnName())){
+                        switch(tableColumns.get(i).getColumnType()){
+                            case Types.NUMERIC:
+                                values.add(Integer.toString(rs.getInt(i+1)));
+                                break;
+
+                            case Types.CHAR:
+                            case Types.VARCHAR:
+                                values.add("'" + rs.getString(i+1) + "'");
+                                break;
+                        }
+                    }
+                }
+                embedKey.setValues(values);
+
+                ResultSet rsEmbed = DataManager.getForeignTuple(embedKey);
+                rsEmbed.next();
+
+                BasicDBObject document = buildDocument(rs, primaryKeys, tableColumns);
+                BasicDBObject embeddedTuple = buildDocument(rsEmbed, embedColumns);
+
+                if(embedKey.composesPrimary)
+                    ((BasicDBObject) document.get("_id")).append(embedName, embeddedTuple);
+                else
+                    document.put(embedName, embeddedTuple);
+
+                // Adds the document to the collection
+                collection.add(document);
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return collection;
+    }
+
+    private static BasicDBObject buildDocument(ResultSet rs, ArrayList<String> primaryKeys, ArrayList<ColumnMetadata> columns) throws SQLException {
+        BasicDBObject document = new BasicDBObject();
+        BasicDBObject primaryKey = new BasicDBObject();
+
+        for(int i = 0; i < columns.size(); i++) {
+            if(!columns.get(i).active)
+                continue;
+
+            String currentName = columns.get(i).getColumnName();
+            int currentType = columns.get(i).getColumnType();
+
+            if (primaryKeys.contains(currentName)) {
+                // This column is part of the primary key; add it to primaryKey object
+                addField(primaryKey, rs, currentName, currentType, i+1);
+            } else {
+                // This is not part of the primary key; add it as another field on the document
+                addField(document, rs, currentName, currentType, i+1);
+            }
+        }
+
+        // Adds the primary key to the document
+        document.put("_id", primaryKey);
+
+        return document;
+    }
+
+    private static BasicDBObject buildDocument(ResultSet rs, ArrayList<ColumnMetadata> columns) throws SQLException {
+        BasicDBObject document = new BasicDBObject();
+
+        for(int i = 0; i < columns.size(); i++) {
+            if(!columns.get(i).active)
+                continue;
+
+            String currentName = columns.get(i).getColumnName();
+            int currentType = columns.get(i).getColumnType();
+
+            addField(document, rs, currentName, currentType, i+1);
+        }
+
+        return document;
+    }
+
+    private static void addField(BasicDBObject object, ResultSet rs, String name, int type, int index) throws SQLException {
+        Object value;
+        switch (type) {
+            case Types.NUMERIC:
+                value = rs.getInt(index);
+
+                if (!rs.wasNull())
+                    object.put(name, value);
+                break;
+
+            case Types.CHAR:
+            case Types.VARCHAR:
+                value = rs.getString(index);
+
+                if (!rs.wasNull())
+                    object.put(name, value);
+                break;
+
+            case Types.TIMESTAMP:
+                value = rs.getTimestamp(index);
+
+                if (!rs.wasNull()) {
+                    long timestamp = ((Timestamp) value).getTime();
+                    object.put(name, new Date(timestamp));
+                }
+                break;
         }
     }
 }

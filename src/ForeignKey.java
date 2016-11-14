@@ -1,21 +1,26 @@
+import java.util.ArrayList;
+
 public class ForeignKey {
-    private String[] myFields;
-    private String[] foreignFields;
+    public boolean composesPrimary = false;
+
+    private ArrayList<String> myFields;
+    private ArrayList<String> foreignFields;
+    private ArrayList<String> values;
     private String foreignTable;
 
-    public String[] getMyFields() {
+    public ArrayList<String> getMyFields() {
         return myFields;
     }
 
-    public void setMyFields(String[] myFields) {
+    public void setMyFields(ArrayList<String> myFields) {
         this.myFields = myFields;
     }
 
-    public String[] getForeignFields() {
+    public ArrayList<String> getForeignFields() {
         return foreignFields;
     }
 
-    public void setForeignFields(String[] foreignFields) {
+    public void setForeignFields(ArrayList<String> foreignFields) {
         this.foreignFields = foreignFields;
     }
 
@@ -25,5 +30,13 @@ public class ForeignKey {
 
     public void setForeignTable(String foreignTable) {
         this.foreignTable = foreignTable;
+    }
+
+    public ArrayList<String> getValues() {
+        return values;
+    }
+
+    public void setValues(ArrayList<String> values) {
+        this.values = values;
     }
 }

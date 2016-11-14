@@ -2,6 +2,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 public class DataManager {
     /**
@@ -25,6 +26,23 @@ public class DataManager {
         Connection connection = DatabaseConnector.getConnection();
         Statement statement = connection.createStatement();
         String query = "SELECT * FROM " + tableName;
+
+        return statement.executeQuery(query);
+    }
+
+    public static ResultSet getForeignTuple(ForeignKey foreignKey) throws SQLException, ClassNotFoundException {
+        Connection connection = DatabaseConnector.getConnection();
+        Statement statement = connection.createStatement();
+
+        String subquery = "";
+        for(int i = 0; i < foreignKey.getForeignFields().size(); i++) {
+            subquery += foreignKey.getForeignFields().get(i) + " = " + foreignKey.getValues().get(i);
+
+            if(i < foreignKey.getForeignFields().size() - 1)
+                subquery += " AND ";
+        }
+
+        String query = "SELECT * FROM " + foreignKey.getForeignTable() + " WHERE " + subquery;
 
         return statement.executeQuery(query);
     }
