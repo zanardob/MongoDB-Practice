@@ -11,6 +11,7 @@ db.runCommand({
 	validator: { $and: [
 		{ Nome: { $exists: true } },
 		{ SiglaEstado: { $exists: true } },
+		{ Populacao: { $exists: true } },
 		{ Populacao: { $gte: 0 } }
 	]}
 })
@@ -37,10 +38,7 @@ db.runCommand({
 	collMod: "Urna",
 	validator: { $and: [
 		{ NSerial: { $exists: true } },
-		{ $or: [
-			{ Estado: { $in: ["funcional", "manutencao"] } },
-			{ Estado: { $exists: false} }
-		]}
+		{ Estado: { $in: ["funcional", "manutencao"] } }
 	]}
 })
 
@@ -64,6 +62,7 @@ db.runCommand({
 	collMod: "Candidato",
 	validator: { $and: [
 		{ NroCand: { $exists: true } },
+		{ Tipo: { $exists: true } },
 		{ Nome: { $exists: true } },
 		{ $or: [
 			{ $and: [
@@ -86,12 +85,18 @@ db.runCommand({
 	collMod: "Cargo",
 	validator: { $and: [
 		{ CodCargo: { $exists: true } },
+		{ PossuiVice: { $exists: true } },
 		{ PossuiVice: { $in: [0, 1] } },
+		{ AnoBase: { $exists: true } },
 		{ AnoBase: { $gte: 1985 } },
 		{ AnoBase: { $lte: 2100 } },
+		{ AnosMandato: { $exists: true } },
 		{ AnosMandato: { $gt: 0 } },
 		{ NomeDescritivo: { $exists: true } },
+		{ NroDeCadeiras: { $exists: true } },
 		{ NroDeCadeiras: { $gt: 0 } },
+		{ Esfera: { $exists: true } },
+		{ Esfera: { $in: ["F", "E", "M"] } }
 		{ $or: [
 			{ $and: [
 				{ Esfera: { $eq: "F" } },
@@ -117,6 +122,7 @@ db.runCommand({
 	validator: { $and: [
 		{ Reg: { $exists: true } },
 		{ CodCargo: { $exists: true } },
+		{ Ano: { $exists: true } },
 		{ Ano: { $gte: 1985 } },
 		{ Ano: { $lte: 2100 } },
 		{ NroCand: { $exists: true } }
