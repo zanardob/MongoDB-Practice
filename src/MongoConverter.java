@@ -1,33 +1,25 @@
 import com.mongodb.BasicDBObject;
+import com.sun.org.apache.xalan.internal.xsltc.runtime.BasisLibrary;
+import org.bson.json.JsonMode;
+import org.bson.json.JsonWriterSettings;
 
 import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class MongoConverter {
-    public ArrayList<BasicDBObject> buildCollection(String tableName) {
-        ArrayList<BasicDBObject> collection = null;
+    private final String databaseName;
+
+    public MongoConverter(String databaseName) {
+        this.databaseName = databaseName;
+    }
+
+    public ArrayList<String> buildCollection(String tableName) {
+        ArrayList<String> commandList = null;
 
         try {
-            String tableDDL = DataManager.getTableDDL(tableName);
-
-            ArrayList<String> primaryKeys = new ArrayList<>();
-
-            // This split gets all the constraints
-            String[] constraints = tableDDL.split("CONSTRAINT");
-            constraints = Arrays.copyOfRange(constraints, 1, constraints.length);
-
-            for(String constraint : constraints){
-                // This split removes the name of the constraint
-                String token = constraint.split("^ *\"[^\\\"]*\" ?")[1];
-
-                if(token.startsWith("PRIMARY KEY")){
-                    // Get the fields that are used as the primary key
-                    // Also removes any empty strings that result from the "split" function call
-                    primaryKeys = new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
-                            .filter(str -> !str.isEmpty()).collect(Collectors.toList()));
-                }
-            }
+            commandList = new ArrayList<>();
+            ArrayList<String> primaryKeys = getPrimaryFields(tableName);
 
             ResultSet rs = DataManager.getData(tableName);
             ResultSetMetaData rsmd = rs.getMetaData();
@@ -35,15 +27,11 @@ public class MongoConverter {
 
             // Builds an ArrayList that contains all the columnNames to be written on the BSON
             ArrayList<ColumnMetadata> tableColumns = new ArrayList<>();
-            for(int i = 1; i <= columnCount; i++) {
+            for(int i = 1; i <= columnCount; i++)
                 tableColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
 
-                // Prints the values for the columnTypes -- DEBUG
-                // System.out.println("Type of column " + tableColumns.get(i-1).getColumnName() + ": " + tableColumns.get(i-1).getColumnType());
-            }
-
             // Iterates over every tuple of the table
-            collection = new ArrayList<>();
+            ArrayList<BasicDBObject> collection = new ArrayList<>();
             while(rs.next()) {
                 BasicDBObject document = buildDocument(rs, primaryKeys, tableColumns);
 
@@ -51,17 +39,24 @@ public class MongoConverter {
                 collection.add(document);
             }
 
+            // Add the commands to the result list
+            commandList.add(databaseName + ".createCollection(\"" + tableName + "\")");
+
+            JsonWriterSettings jws = new JsonWriterSettings(JsonMode.SHELL);
+            for (BasicDBObject document : collection)
+                commandList.add(databaseName + "." + tableName + ".insert(" + document.toJson(jws) + ")");
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
 
-        return collection;
+        return commandList;
     }
 
-    public ArrayList<BasicDBObject> buildCollection(String tableName, String embedName) {
-        ArrayList<BasicDBObject> collection = null;
+    public ArrayList<String> buildCollection(String tableName, String embedName) {
+        ArrayList<String> commandList = null;
 
         try {
+            commandList = new ArrayList<>();
             String tableDDL = DataManager.getTableDDL(tableName);
 
             ArrayList<String> primaryKeys = new ArrayList<>();
@@ -138,26 +133,11 @@ public class MongoConverter {
             }
 
             // Iterates over every tuple of the table
-            collection = new ArrayList<>();
+            ArrayList<BasicDBObject> collection = new ArrayList<>();
             while(rs.next()) {
                 BasicDBObject document = buildDocument(rs, primaryKeys, tableColumns);
 
-                ArrayList<String> values = new ArrayList<>();
-                for(int i = 0; i < columnCount; i++) {
-                    if(embedKey.getMyFields().contains(tableColumns.get(i).getColumnName())){
-                        switch(tableColumns.get(i).getColumnType()){
-                            case Types.NUMERIC:
-                                values.add(Integer.toString(rs.getInt(i+1)));
-                                break;
-
-                            case Types.CHAR:
-                            case Types.VARCHAR:
-                                values.add("'" + rs.getString(i+1) + "'");
-                                break;
-                        }
-                    }
-                }
-                embedKey.setValues(values);
+                setValues(rs, embedKey, columnCount, tableColumns);
 
                 ResultSet rsEmbed = DataManager.getForeignTuple(embedKey);
                 if(rsEmbed.next()) {
@@ -172,11 +152,104 @@ public class MongoConverter {
                 // Adds the document to the collection
                 collection.add(document);
             }
+
+            // Add the commands to the result list
+            commandList.add(databaseName + ".createCollection(\"" + tableName + "\")");
+
+            JsonWriterSettings jws = new JsonWriterSettings(JsonMode.SHELL);
+            for (BasicDBObject document : collection)
+                commandList.add(databaseName + "." + tableName + ".insert(" + document.toJson(jws) + ")");
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
 
-        return collection;
+        return commandList;
+    }
+
+    public ArrayList<String> buildManyToManyRelationships(String tableName){
+        ArrayList<String> commandList = null;
+
+        try {
+            commandList = new ArrayList<>();
+            String tableDDL = DataManager.getTableDDL(tableName);
+
+            ArrayList<ForeignKey> foreignKeys = new ArrayList<>();
+
+            // This split gets all the constraints
+            String[] constraints = tableDDL.split("CONSTRAINT");
+            constraints = Arrays.copyOfRange(constraints, 1, constraints.length);
+
+            for(String constraint : constraints){
+                // This split removes the name of the constraint
+                String token = constraint.split("^ *\"[^\\\"]*\" ?")[1];
+
+                if(token.startsWith("FOREIGN KEY")){
+                    String foreignTable = token.split("^[\\s\\S]*\\.\"|\" [\\S\\s]*")[1];
+
+                    ForeignKey fk = new ForeignKey();
+
+                    fk.setMyFields(new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
+                            .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
+
+                    fk.setForeignFields(new ArrayList<>(Arrays.stream(token.split("^.*\\([\\s\\S]*?\\(|\\)[\\s\\S]*|[\", ]"))
+                            .filter(str -> !str.isEmpty()).collect(Collectors.toList())));
+
+                    fk.setForeignTable(foreignTable);
+
+                    foreignKeys.add(fk);
+                }
+            }
+
+            ResultSet rs = DataManager.getData(tableName);
+            ResultSetMetaData rsmd = rs.getMetaData();
+            int columnCount = rsmd.getColumnCount();
+
+            // Builds an ArrayList that contains all the columnNames to be written on the BSON
+            ArrayList<ColumnMetadata> tableColumns = new ArrayList<>();
+            for(int i = 1; i <= columnCount; i++)
+                tableColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
+
+            while(rs.next()){
+                for(ForeignKey currentForeign : foreignKeys) {
+                    setValues(rs, currentForeign, columnCount, tableColumns);
+
+                    ResultSet rsForeign = DataManager.getForeignTuple(currentForeign);
+                    rsmd = rsForeign.getMetaData();
+                    rsForeign.next();
+                    int foreignColumnCount = rsmd.getColumnCount();
+
+                    // Builds an ArrayList that contains all the columnNames to be written on the BSON
+                    ArrayList<ColumnMetadata> foreignColumns = new ArrayList<>();
+                    for(int i = 1; i <= foreignColumnCount; i++)
+                        foreignColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
+
+                    BasicDBObject insertionObject = buildDocument(rsForeign, foreignColumns);
+                    /*for(int i = 0; i < currentForeign.getMyFields().size(); i++){
+
+                        insertionObject.put(currentForeign.getMyFields().get(i), rsForeign.getObject(i+1));
+                    }*/
+
+                    for(ForeignKey otherForeign : foreignKeys){
+                        if(otherForeign == currentForeign)
+                            continue;
+
+                        setValues(rs, otherForeign, columnCount, tableColumns);
+                        BasicDBObject searchObject = new BasicDBObject();
+
+                        for(int i = 0; i < otherForeign.getMyFields().size(); i++){
+                            searchObject.put(otherForeign.getForeignFields().get(i), otherForeign.getValues().get(i));
+                        }
+
+                        String command = databaseName + "." + otherForeign.getForeignTable() + ".update(" + searchObject + ", {$addToSet: {" + currentForeign.getForeignTable() + ": " + insertionObject + "}})";
+                        commandList.add(command);
+                    }
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return commandList;
     }
 
     private BasicDBObject buildDocument(ResultSet rs, ArrayList<String> primaryKeys, ArrayList<ColumnMetadata> columns) throws SQLException {
@@ -248,5 +321,47 @@ public class MongoConverter {
                 }
                 break;
         }
+    }
+
+    private ArrayList<String> getPrimaryFields(String tableName) throws SQLException, ClassNotFoundException {
+        String tableDDL = DataManager.getTableDDL(tableName);
+        ArrayList<String> primaryKeys = new ArrayList<>();
+
+        // This split gets all the constraints
+        String[] constraints = tableDDL.split("CONSTRAINT");
+        constraints = Arrays.copyOfRange(constraints, 1, constraints.length);
+
+        for(String constraint : constraints){
+            // This split removes the name of the constraint
+            String token = constraint.split("^ *\"[^\\\"]*\" ?")[1];
+
+            if(token.startsWith("PRIMARY KEY")){
+                // Get the fields that are used as the primary key
+                // Also removes any empty strings that result from the "split" function call
+                primaryKeys = new ArrayList<>(Arrays.stream(token.split("^.*\\(|\\)[\\S\\s]*|[\", ]"))
+                        .filter(str -> !str.isEmpty()).collect(Collectors.toList()));
+            }
+        }
+
+        return primaryKeys;
+    }
+
+    private void setValues(ResultSet rs, ForeignKey fk, int columnCount, ArrayList<ColumnMetadata> tableColumns) throws SQLException {
+        ArrayList<String> values = new ArrayList<>();
+        for (int i = 0; i < columnCount; i++) {
+            if (fk.getMyFields().contains(tableColumns.get(i).getColumnName())) {
+                switch (tableColumns.get(i).getColumnType()) {
+                    case Types.NUMERIC:
+                        values.add(Integer.toString(rs.getInt(i + 1)));
+                        break;
+
+                    case Types.CHAR:
+                    case Types.VARCHAR:
+                        values.add("'" + rs.getString(i + 1) + "'");
+                        break;
+                }
+            }
+        }
+        fk.setValues(values);
     }
 }

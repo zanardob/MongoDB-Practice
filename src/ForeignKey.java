@@ -5,6 +5,7 @@ public class ForeignKey {
 
     private ArrayList<String> myFields;
     private ArrayList<String> foreignFields;
+    private ArrayList<String> foreignPrimaries;
     private ArrayList<String> values;
     private String foreignTable;
 
@@ -38,5 +39,13 @@ public class ForeignKey {
 
     public void setValues(ArrayList<String> values) {
         this.values = values;
+    }
+
+    public ArrayList<String> getForeignPrimaries() {
+        return foreignPrimaries;
+    }
+
+    public void setForeignPrimaries(ArrayList<String> foreignPrimaries) {
+        this.foreignPrimaries = foreignPrimaries;
     }
 }

@@ -2,7 +2,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 
 public class DataManager {
     /**
@@ -12,7 +11,7 @@ public class DataManager {
         Connection connection = DatabaseConnector.getConnection();
         Statement statement = connection.createStatement();
 
-        String query = "SELECT DBMS_METADATA.GET_DDL('TABLE', u.table_name) AS TABLE_DDL FROM USER_TABLES u WHERE u.TABLE_NAME = '" + tableName + "'";
+        String query = "SELECT DBMS_METADATA.GET_DDL('TABLE', TABLE_NAME) AS TABLE_DDL FROM USER_TABLES NATURAL JOIN USER_SYNONYMS WHERE TABLE_NAME = '" + tableName + "' OR SYNONYM_NAME = '" + tableName + "'" ;
 
         ResultSet rs = statement.executeQuery(query);
         rs.next();
