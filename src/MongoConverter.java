@@ -185,6 +185,7 @@ public class MongoConverter {
 
                 if(token.startsWith("FOREIGN KEY")){
                     String foreignTable = token.split("^[\\s\\S]*\\.\"|\" [\\S\\s]*")[1];
+                    foreignTable = foreignTable.substring(4);
 
                     ForeignKey fk = new ForeignKey();
 
@@ -214,20 +215,11 @@ public class MongoConverter {
                     setValues(rs, currentForeign, columnCount, tableColumns);
 
                     ResultSet rsForeign = DataManager.getForeignTuple(currentForeign);
-                    rsmd = rsForeign.getMetaData();
                     rsForeign.next();
-                    int foreignColumnCount = rsmd.getColumnCount();
 
-                    // Builds an ArrayList that contains all the columnNames to be written on the BSON
-                    ArrayList<ColumnMetadata> foreignColumns = new ArrayList<>();
-                    for(int i = 1; i <= foreignColumnCount; i++)
-                        foreignColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
-
-                    BasicDBObject insertionObject = buildDocument(rsForeign, foreignColumns);
-                    /*for(int i = 0; i < currentForeign.getMyFields().size(); i++){
-
+                    BasicDBObject insertionObject = new BasicDBObject();
+                    for(int i = 0; i < currentForeign.getMyFields().size(); i++)
                         insertionObject.put(currentForeign.getMyFields().get(i), rsForeign.getObject(i+1));
-                    }*/
 
                     for(ForeignKey otherForeign : foreignKeys){
                         if(otherForeign == currentForeign)
@@ -235,10 +227,23 @@ public class MongoConverter {
 
                         setValues(rs, otherForeign, columnCount, tableColumns);
                         BasicDBObject searchObject = new BasicDBObject();
+                        BasicDBObject contents = new BasicDBObject();
+                        ArrayList<String> otherPrimaries = getPrimaryFields(otherForeign.getForeignTable());
 
-                        for(int i = 0; i < otherForeign.getMyFields().size(); i++){
-                            searchObject.put(otherForeign.getForeignFields().get(i), otherForeign.getValues().get(i));
+                        for(int i = 0; i < otherForeign.getMyFields().size(); i++) {
+                            for (ColumnMetadata cm : tableColumns) {
+                                if (Objects.equals(cm.getColumnName(), otherForeign.getMyFields().get(i))) {
+                                    if(otherPrimaries.contains(otherForeign.getForeignFields().get(i))) {
+                                        contents.put(otherForeign.getForeignFields().get(i), rs.getObject(cm.getColumnName()));
+                                    } else {
+                                        searchObject.put(otherForeign.getForeignFields().get(i), rs.getObject(cm.getColumnName()));
+                                    }
+                                }
+                            }
                         }
+
+                        if(contents.size() != 0)
+                            searchObject.put("_id", contents);
 
                         String command = databaseName + "." + otherForeign.getForeignTable() + ".update(" + searchObject + ", {$addToSet: {" + currentForeign.getForeignTable() + ": " + insertionObject + "}})";
                         commandList.add(command);
