@@ -226,3 +226,4 @@ pip-log.txt
 .idea/dataSources.ids
 .idea/dataSources.local.xml
 out/
+*.txt
