@@ -1,5 +1,5 @@
+import com.google.common.collect.Multimap;
 import com.mongodb.BasicDBObject;
-import com.sun.org.apache.xalan.internal.xsltc.runtime.BasisLibrary;
 import org.bson.json.JsonMode;
 import org.bson.json.JsonWriterSettings;
 
@@ -101,12 +101,8 @@ public class MongoConverter {
 
             // Builds an ArrayList that contains all the columnNames to be written on the BSON
             ArrayList<ColumnMetadata> embedColumns = new ArrayList<>();
-            for(int i = 1; i <= columnCount; i++) {
+            for(int i = 1; i <= columnCount; i++)
                 embedColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
-
-                // Prints the values for the columnTypes -- DEBUG
-                // System.out.println("Type of embed column " + embedColumns.get(i-1).getColumnName() + ": " + embedColumns.get(i-1).getColumnType());
-            }
 
             rs = DataManager.getData(tableName);
             rsmd = rs.getMetaData();
@@ -114,12 +110,8 @@ public class MongoConverter {
 
             // Builds an ArrayList that contains all the columnNames to be written on the BSON
             ArrayList<ColumnMetadata> tableColumns = new ArrayList<>();
-            for(int i = 1; i <= columnCount; i++) {
+            for(int i = 1; i <= columnCount; i++)
                 tableColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
-
-                // Prints the values for the columnTypes -- DEBUG
-                // System.out.println("Type of column " + tableColumns.get(i-1).getColumnName() + ": " + tableColumns.get(i-1).getColumnType());
-            }
 
             // Removes the fields that are part of the foreign relation that is going to be embedded
             for(String field : embedKey.getMyFields()){
@@ -262,6 +254,29 @@ public class MongoConverter {
         }
 
         return commandList;
+    }
+
+    public ArrayList<String> buildIndexes(String tableName){
+        ArrayList<String> commands = null;
+        try {
+            // Gets the unique columns for this table
+            Multimap<String, String> constraints = DataManager.getUniqueColumns(tableName);
+            commands = new ArrayList<>();
+
+            for(String constraintName : constraints.keySet()){
+                BasicDBObject indexTuple = new BasicDBObject();
+                Collection<String> constraintColumns = constraints.get(constraintName);
+
+                for(String columnName : constraintColumns)
+                    indexTuple.put(columnName, 1);
+
+                commands.add(databaseName + "." + tableName + ".createIndex(" + indexTuple + ")");
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return commands;
     }
 
     private BasicDBObject buildDocument(ResultSet rs, ArrayList<String> primaryKeys, ArrayList<ColumnMetadata> columns) throws SQLException {

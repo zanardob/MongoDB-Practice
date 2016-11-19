@@ -1,3 +1,6 @@
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,7 +14,7 @@ public class DataManager {
         Connection connection = OracleConnector.getConnection();
         Statement statement = connection.createStatement();
 
-        String query = "SELECT DBMS_METADATA.GET_DDL('TABLE', TABLE_NAME) AS TABLE_DDL FROM USER_TABLES NATURAL JOIN USER_SYNONYMS WHERE TABLE_NAME = '" + tableName + "' OR SYNONYM_NAME = '" + tableName + "'" ;
+        String query = "SELECT DBMS_METADATA.GET_DDL('TABLE', TABLE_NAME) AS TABLE_DDL FROM USER_TABLES NATURAL JOIN USER_SYNONYMS WHERE SYNONYM_NAME = '" + tableName + "'" ;
 
         ResultSet rs = statement.executeQuery(query);
         rs.next();
@@ -47,5 +50,19 @@ public class DataManager {
         String query = "SELECT * FROM " + foreignKey.getForeignTable() + " WHERE " + subquery;
 
         return statement.executeQuery(query);
+    }
+
+    public static Multimap<String, String> getUniqueColumns(String tableName) throws SQLException, ClassNotFoundException {
+        Connection connection = OracleConnector.getConnection();
+        Statement statement = connection.createStatement();
+
+        String query = "SELECT COLS.CONSTRAINT_NAME, COLS.COLUMN_NAME FROM USER_CONSTRAINTS CONS JOIN USER_CONS_COLUMNS COLS ON (CONS.OWNER = COLS.OWNER AND CONS.CONSTRAINT_NAME = COLS.CONSTRAINT_NAME) JOIN USER_SYNONYMS SYMS ON CONS.TABLE_NAME = SYMS.TABLE_NAME WHERE CONS.CONSTRAINT_TYPE = 'U' AND SYMS.SYNONYM_NAME = '" + tableName + "' ORDER BY COLS.POSITION";
+        ResultSet rs = statement.executeQuery(query);
+
+        Multimap<String, String> constraints = ArrayListMultimap.create();
+        while(rs.next())
+            constraints.put(rs.getString("CONSTRAINT_NAME"), rs.getString("COLUMN_NAME"));
+
+        return constraints;
     }
 }

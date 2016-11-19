@@ -17,5 +17,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" exported="" name="org.mongodb:mongodb-driver:3.3.0" level="project" />
+    <orderEntry type="library" exported="" name="com.google.guava:guava:20.0" level="project" />
   </component>
 </module>
