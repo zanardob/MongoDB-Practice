@@ -225,6 +225,13 @@ public class MongoConverter {
                         if(otherForeign == currentForeign)
                             continue;
 
+                        // Adds the fields that aren't in either table to the insertionObject
+                        for(int i = 0; i < columnCount; i++){
+                            String currentColumn = tableColumns.get(i).getColumnName();
+                            if(!currentForeign.getMyFields().contains(currentColumn) && !otherForeign.getMyFields().contains(currentColumn))
+                                insertionObject.put(currentColumn, rs.getObject(i+1));
+                        }
+
                         setValues(rs, otherForeign, columnCount, tableColumns);
                         BasicDBObject searchObject = new BasicDBObject();
                         BasicDBObject contents = new BasicDBObject();

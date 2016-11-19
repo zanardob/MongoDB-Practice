@@ -8,7 +8,7 @@ public class DataManager {
      * Simply returns the DDL of the table specified
      */
     public static String getTableDDL(String tableName) throws SQLException, ClassNotFoundException {
-        Connection connection = DatabaseConnector.getConnection();
+        Connection connection = OracleConnector.getConnection();
         Statement statement = connection.createStatement();
 
         String query = "SELECT DBMS_METADATA.GET_DDL('TABLE', TABLE_NAME) AS TABLE_DDL FROM USER_TABLES NATURAL JOIN USER_SYNONYMS WHERE TABLE_NAME = '" + tableName + "' OR SYNONYM_NAME = '" + tableName + "'" ;
@@ -22,15 +22,18 @@ public class DataManager {
      * Simple select from a table to build the BSON
      */
     public static ResultSet getData(String tableName) throws SQLException, ClassNotFoundException {
-        Connection connection = DatabaseConnector.getConnection();
+        Connection connection = OracleConnector.getConnection();
         Statement statement = connection.createStatement();
         String query = "SELECT * FROM " + tableName;
 
         return statement.executeQuery(query);
     }
 
+    /**
+     * Gets all the tuples that match the values passed with the ForeignKey parameter
+     */
     public static ResultSet getForeignTuple(ForeignKey foreignKey) throws SQLException, ClassNotFoundException {
-        Connection connection = DatabaseConnector.getConnection();
+        Connection connection = OracleConnector.getConnection();
         Statement statement = connection.createStatement();
 
         String subquery = "";
