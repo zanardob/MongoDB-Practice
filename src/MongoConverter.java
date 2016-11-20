@@ -21,7 +21,7 @@ public class MongoConverter {
             commandList = new ArrayList<>();
             ArrayList<String> primaryKeys = getPrimaryFields(tableName);
 
-            ResultSet rs = DataManager.getData(tableName);
+            ResultSet rs = ConversionManager.getData(tableName);
             ResultSetMetaData rsmd = rs.getMetaData();
             int columnCount = rsmd.getColumnCount();
 
@@ -57,7 +57,7 @@ public class MongoConverter {
 
         try {
             commandList = new ArrayList<>();
-            String tableDDL = DataManager.getTableDDL(tableName);
+            String tableDDL = ConversionManager.getTableDDL(tableName);
 
             ArrayList<String> primaryKeys = new ArrayList<>();
             ForeignKey embedKey = new ForeignKey();
@@ -95,7 +95,7 @@ public class MongoConverter {
                 }
             }
 
-            ResultSet rs = DataManager.getData(embedKey.getForeignTable());
+            ResultSet rs = ConversionManager.getData(embedKey.getForeignTable());
             ResultSetMetaData rsmd = rs.getMetaData();
             int columnCount = rsmd.getColumnCount();
 
@@ -104,7 +104,7 @@ public class MongoConverter {
             for(int i = 1; i <= columnCount; i++)
                 embedColumns.add(new ColumnMetadata(rsmd.getColumnName(i), rsmd.getColumnType(i)));
 
-            rs = DataManager.getData(tableName);
+            rs = ConversionManager.getData(tableName);
             rsmd = rs.getMetaData();
             columnCount = rsmd.getColumnCount();
 
@@ -131,7 +131,7 @@ public class MongoConverter {
 
                 setValues(rs, embedKey, columnCount, tableColumns);
 
-                ResultSet rsEmbed = DataManager.getForeignTuple(embedKey);
+                ResultSet rsEmbed = ConversionManager.getForeignTuple(embedKey);
                 if(rsEmbed.next()) {
                     BasicDBObject embeddedTuple = buildDocument(rsEmbed, embedColumns);
 
@@ -163,7 +163,7 @@ public class MongoConverter {
 
         try {
             commandList = new ArrayList<>();
-            String tableDDL = DataManager.getTableDDL(tableName);
+            String tableDDL = ConversionManager.getTableDDL(tableName);
 
             ArrayList<ForeignKey> foreignKeys = new ArrayList<>();
 
@@ -193,7 +193,7 @@ public class MongoConverter {
                 }
             }
 
-            ResultSet rs = DataManager.getData(tableName);
+            ResultSet rs = ConversionManager.getData(tableName);
             ResultSetMetaData rsmd = rs.getMetaData();
             int columnCount = rsmd.getColumnCount();
 
@@ -206,7 +206,7 @@ public class MongoConverter {
                 for(ForeignKey currentForeign : foreignKeys) {
                     setValues(rs, currentForeign, columnCount, tableColumns);
 
-                    ResultSet rsForeign = DataManager.getForeignTuple(currentForeign);
+                    ResultSet rsForeign = ConversionManager.getForeignTuple(currentForeign);
                     rsForeign.next();
 
                     BasicDBObject insertionObject = new BasicDBObject();
@@ -260,7 +260,7 @@ public class MongoConverter {
         ArrayList<String> commands = null;
         try {
             // Gets the unique columns for this table
-            Multimap<String, String> constraints = DataManager.getUniqueColumns(tableName);
+            Multimap<String, String> constraints = ConversionManager.getUniqueColumns(tableName);
             commands = new ArrayList<>();
 
             for(String constraintName : constraints.keySet()){
@@ -351,7 +351,7 @@ public class MongoConverter {
     }
 
     private ArrayList<String> getPrimaryFields(String tableName) throws SQLException, ClassNotFoundException {
-        String tableDDL = DataManager.getTableDDL(tableName);
+        String tableDDL = ConversionManager.getTableDDL(tableName);
         ArrayList<String> primaryKeys = new ArrayList<>();
 
         // This split gets all the constraints

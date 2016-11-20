@@ -3,10 +3,12 @@ import java.util.ArrayList;
 
 public class Main {
     public static void main(String[] argv){
-        OracleConnector.setCredentials("n8937250", "n8937250");
+        //OracleConnector.setCredentials("n8937250", "n8937250");
+        //convertElectionDatabase("conversion.txt");
+        //indexElectionDatabase("indexes.txt");
 
-        convertElectionDatabase("conversion.txt");
-        indexElectionDatabase("indexes.txt");
+        //testInsertion();
+        //testFind();
     }
 
     /**
@@ -95,4 +97,104 @@ public class Main {
             e.printStackTrace();
         }
     }
+
+    public static void testInsertion(){
+        PerformanceManager pm;
+
+        // Not Indexed
+        pm = new PerformanceManager("TEST_TABLE");
+        pm.insertionTest(100);
+        pm.insertionTest(1000);
+        pm.insertionTest(10000);
+        pm.insertionTest(100000);
+
+        // Indexed
+        // db.TEST_TABLE_INDEXED.createIndex({ "nome1": "text" });
+        pm = new PerformanceManager("TEST_TABLE_INDEXED");
+        pm.insertionTest(100);
+        pm.insertionTest(1000);
+        pm.insertionTest(10000);
+        pm.insertionTest(100000);
+    }
+
+    public static void testFind(){
+        PerformanceManager pm;
+
+        // Not Indexed
+        pm = new PerformanceManager("TEST_TABLE");
+        pm.findTest(100);
+        pm.findTest(1000);
+        pm.findTest(10000);
+        pm.findTest(100000);
+        pm.findTest(1000000);
+
+        // Indexed
+        pm = new PerformanceManager("TEST_TABLE_INDEXED");
+        pm.findTest(100);
+        pm.findTest(1000);
+        pm.findTest(10000);
+        pm.findTest(100000);
+        pm.findTest(1000000);
+    }
+
+    // Performance results below:
+    /*
+     * ########## MONGODB ##########
+     * INSERTIONS
+     * -- No index
+     *    100 insertions: 0.62 seconds!
+     *   1000 insertions: 5.59 seconds!
+     *  10000 insertions: 26.42 seconds!
+     * 100000 insertions: 285.51 seconds!
+     *
+     * -- Indexed
+     *    100 insertions: 0.63 seconds!
+     *   1000 insertions: 2.01 seconds!
+     *  10000 insertions: 33.50 seconds!
+     * 100000 insertions: 219.06 seconds!
+     *
+     * FINDS
+     * -- No index
+     *     100 finds: 0.02 seconds!
+     *    1000 finds: 0.00 seconds!
+     *   10000 finds: 0.01 seconds!
+     *  100000 finds: 0.03 seconds!
+     * 1000000 finds: 0.12 seconds!
+     *
+     * -- Indexed
+     *     100 finds: 0.00 seconds!
+     *    1000 finds: 0.00 seconds!
+     *   10000 finds: 0.00 seconds!
+     *  100000 finds: 0.01 seconds!
+     * 1000000 finds: 0.15 seconds!
+     *
+     * ########## ORACLE ##########
+     * INSERTIONS
+     * -- No index
+     *    100 insertions: 7.79 seconds!
+     *   1000 insertions: 223.83 seconds!
+     *  10000 insertions: 954.21 seconds!
+     * 100000 insertions: 5545.3 seconds!
+     *
+     * -- Indexed
+     *    100 insertions: 7.34 seconds!
+     *   1000 insertions: 112.26 seconds!
+     *  10000 insertions: 1029.89 seconds!
+     * 100000 insertions: 12093.42 seconds!
+     *
+     * SELECTS
+     * -- No index
+     *     100 selects: 0.14 seconds!
+     *    1000 selects: 0.22 seconds!
+     *   10000 selects: 0.47 seconds!
+     *  100000 selects: 5.31 seconds!
+     * 1000000 selects: 52.73 seconds!
+     *
+     * -- Indexed
+     *     100 selects: 1.37 seconds!
+     *    1000 selects: 0.73 seconds!
+     *   10000 selects: 0.47 seconds!
+     *  100000 selects: 5.37 seconds!
+     * 1000000 selects: 54.19 seconds!
+     */
 }

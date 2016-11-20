@@ -6,7 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class DataManager {
+public class ConversionManager {
     /**
      * Simply returns the DDL of the table specified
      */

@@ -12,9 +12,11 @@ public class OracleConnector {
     private static String password = null;
     private static Connection connection = null;
 
-    private static void connect() throws ClassNotFoundException, SQLException {
+    private static Connection connect() throws ClassNotFoundException, SQLException {
         Class.forName("oracle.jdbc.driver.OracleDriver");
         connection = DriverManager.getConnection(CONNECTION, username, password);
+
+        return connection;
     }
 
     public static Connection getConnection() throws ClassNotFoundException, SQLException {
@@ -22,8 +24,7 @@ public class OracleConnector {
             return connection;
         }
 
-        connect();
-        return connection;
+        return connect();
     }
 
     public static void setCredentials(String username, String password){
