@@ -8,12 +8,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MongoConverter {
-    private final String databaseName;
-
-    public MongoConverter(String databaseName) {
-        this.databaseName = databaseName;
-    }
-
     public ArrayList<String> buildCollection(String tableName) {
         ArrayList<String> commandList = null;
 
@@ -40,11 +34,11 @@ public class MongoConverter {
             }
 
             // Add the commands to the result list
-            commandList.add(databaseName + ".createCollection(\"" + tableName + "\")");
+            commandList.add("db.createCollection(\"" + tableName + "\")");
 
             JsonWriterSettings jws = new JsonWriterSettings(JsonMode.SHELL);
             for (BasicDBObject document : collection)
-                commandList.add(databaseName + "." + tableName + ".insert(" + document.toJson(jws) + ")");
+                commandList.add("db." + tableName + ".insert(" + document.toJson(jws) + ")");
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -146,11 +140,11 @@ public class MongoConverter {
             }
 
             // Add the commands to the result list
-            commandList.add(databaseName + ".createCollection(\"" + tableName + "\")");
+            commandList.add("db.createCollection(\"" + tableName + "\")");
 
             JsonWriterSettings jws = new JsonWriterSettings(JsonMode.SHELL);
             for (BasicDBObject document : collection)
-                commandList.add(databaseName + "." + tableName + ".insert(" + document.toJson(jws) + ")");
+                commandList.add("db." + tableName + ".insert(" + document.toJson(jws) + ")");
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -244,7 +238,7 @@ public class MongoConverter {
                         if(contents.size() != 0)
                             searchObject.put("_id", contents);
 
-                        String command = databaseName + "." + otherForeign.getForeignTable() + ".update(" + searchObject + ", {$addToSet: {" + currentForeign.getForeignTable() + ": " + insertionObject + "}})";
+                        String command = "db." + otherForeign.getForeignTable() + ".update(" + searchObject + ", {$addToSet: {" + currentForeign.getForeignTable() + ": " + insertionObject + "}})";
                         commandList.add(command);
                     }
                 }
@@ -270,7 +264,7 @@ public class MongoConverter {
                 for(String columnName : constraintColumns)
                     indexTuple.put(columnName, 1);
 
-                commands.add(databaseName + "." + tableName + ".createIndex(" + indexTuple + ")");
+                commands.add("db." + tableName + ".createIndex(" + indexTuple + ", { unique: true, sparse: true })");
             }
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();

@@ -9,14 +9,14 @@ import java.util.ArrayList;
 
 public class Main extends Application {
     public static void main(String[] argv){
-        //OracleConnector.setCredentials("n8937250", "n8937250");
-        //convertElectionDatabase("conversion.txt");
-        //indexElectionDatabase("indexes.txt");
+        OracleConnector.setCredentials("n8937250", "n8937250");
+        convertElectionDatabase("conversion.txt");
+        indexElectionDatabase("indexes.txt");
 
         //testInsertion();
         //testFind();
 
-        launch(argv);
+        //launch(argv);
     }
 
     public void start(Stage primaryStage) throws Exception {
@@ -37,7 +37,7 @@ public class Main extends Application {
      * change the function arguments.
      */
     public static void convertElectionDatabase(String fileName){
-        MongoConverter mc = new MongoConverter("db");
+        MongoConverter mc = new MongoConverter();
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName), "UTF-8"))) {
             ArrayList<ArrayList<String>> buffer = new ArrayList<>();
@@ -82,7 +82,7 @@ public class Main extends Application {
      * change the function arguments.
      */
     public static void indexElectionDatabase(String fileName){
-        MongoConverter mc = new MongoConverter("db");
+        MongoConverter mc = new MongoConverter();
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName), "UTF-8"))) {
             ArrayList<ArrayList<String>> buffer = new ArrayList<>();
