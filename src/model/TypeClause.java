@@ -11,6 +11,10 @@ public class TypeClause implements Clause {
     private Label fieldName;
     private Label type;
 
+    /**
+     * This is the constructor for the TypeClause,
+     * containing all the information necessary to build a TypeClause
+     */
     public TypeClause(AttributeInfo attribute, String type) {
         hBox = new HBox();
         this.attribute = attribute;

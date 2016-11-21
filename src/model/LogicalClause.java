@@ -14,6 +14,10 @@ public class LogicalClause implements Clause{
     private HBox hBox;
     private HBox innerHBox;
 
+    /**
+     * This is the constructor for the LogicalClause,
+     * containing all the information necessary to build a LogicalClause
+     */
     public LogicalClause(String operationCommand, CollectionInfo collection) {
         clauses = new ArrayList<>();
         hBox = new HBox();

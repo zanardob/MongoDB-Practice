@@ -15,6 +15,10 @@ public class ComparisonClause implements Clause{
     private Label value;
     private boolean negation;
 
+    /**
+     * This is the constructor for the ComparisonClause,
+     * containing all the information necessary to build a ComparisonClause
+     */
     public ComparisonClause(AttributeInfo attribute, String operation, String value, boolean negation) {
         hBox = new HBox();
         this.negation = negation;

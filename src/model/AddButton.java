@@ -26,11 +26,11 @@ public class AddButton extends Button {
     private boolean list = false;
 
     public AddButton(HBox hBox, CollectionInfo collection) {
-        Effect icon = new ImageInput(new Image("file:art\\add.png"));
+        //Effect icon = new ImageInput(new Image("file:art\\add.png"));
 
         setMinSize(15, 15);
         setPrefSize(15, 15);
-        setEffect(icon);
+        //setEffect(icon);
 
         this.hBox = hBox;
         this.collection = collection;
@@ -42,6 +42,10 @@ public class AddButton extends Button {
         return clause;
     }
 
+    /**
+     * This special controller is created when the button is created inside a clause (OR, AND, NOR clauses)
+     * In that case, it will add its resulting clause to the list of the "mother" clause.
+     */
     public AddButton(HBox hBox, CollectionInfo collection, ArrayList<Clause> clauses) {
         Effect icon = new ImageInput(new Image("file:art\\add.png"));
 
@@ -59,6 +63,12 @@ public class AddButton extends Button {
         setOnAction(event -> add());
     }
 
+    /**
+     * Clicking the button will call the add() method. This will load the AddClause view, and wait
+     * until the clause is confirmed. If a new clause is completed, this method will add the resulting
+     * clause to a list if necessary and replace the button art with the new visual clause, so the user
+     * can check his query as it is built.
+     */
     private void add() {
         Stage addClause = new Stage();
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/addclauseview.fxml"));

@@ -45,6 +45,11 @@ public class AddClauseController implements Initializable {
     @FXML public VBox vboxFields;
     @FXML public ComboBox cboxType;
 
+    /**
+     * This function sets the initial parameters needed when the window opens
+     * (The only things that we know for sure are the possible classes (Comparison, Logical or Type)
+     * The remaining values are loaded dynamically depending on the user's class choice.
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         added = false;
@@ -62,6 +67,10 @@ public class AddClauseController implements Initializable {
         stage.close();
     }
 
+    /**
+     * Gathers the information input by the user and creates a clause cointaining it.
+     * If it cannot create a clause (incomplete information), it will do nothing.
+     */
     public void confirm(ActionEvent actionEvent) {
         if(!Objects.equals(cboxType.getValue(), null)) {
             AttributeInfo attribute = new AttributeInfo();
@@ -112,6 +121,10 @@ public class AddClauseController implements Initializable {
         this.collection = collection;
     }
 
+    /**
+     * This function is triggered by the click on the ComboBox (Comparison, Value or Type)
+     * It will display the rest of the options to the user accordingly to his or her previous ComboBox choice.
+     */
     public void chooseType(ActionEvent actionEvent) {
         fieldLabel.setText("Field");
         fieldLabel.setFont(Font.font(14));
@@ -141,7 +154,7 @@ public class AddClauseController implements Initializable {
                 label.setFont(Font.font(14));
                 bp.setLeft(label);
                 items.clear();
-                items.addAll("Equal to", "Greater then", "Greater/equal to", "Less then", "Less/equal to", "Not equal to", "In list", "Not in list");
+                items.addAll("Equal to", "Greater than", "Greater/equal to", "Less than", "Less/equal to", "Not equal to", "In list", "Not in list");
                 cBox.setItems(items);
                 bp.setRight(cBox);
                 vboxFields.getChildren().addAll(bpField, bp, bpComparison, bpNegation);

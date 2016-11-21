@@ -6,6 +6,10 @@ import java.util.Objects;
 public class DatabaseInfo {
     private ArrayList<CollectionInfo> collections;
 
+    /**
+     * This only contains information specific to THIS Database.
+     * Here, we have the names of all collections and all their possible attributes.
+     */
     public DatabaseInfo() {
         CollectionInfo collection;
         AttributeInfo attribute;
@@ -411,6 +415,9 @@ public class DatabaseInfo {
         // End Collection ZONA
     }
 
+    /**
+     * Returns the correct collection given its name (string)
+     */
     public CollectionInfo getCollection(String collectionName) {
         for(CollectionInfo collection : collections) {
             if(Objects.equals(collection.getName(), collectionName)) {
@@ -420,15 +427,9 @@ public class DatabaseInfo {
         return null;
     }
 
-    public ArrayList<AttributeInfo> getCollectionAttributes(String collectionName) {
-        for(CollectionInfo collection : collections) {
-            if(Objects.equals(collection.getName(), collectionName)) {
-                return collection.getAttributes();
-            }
-        }
-        return null;
-    }
-
+    /**
+     * Returns a list of all collection names
+     */
     public ArrayList<String> getCollectionNames() {
         ArrayList<String> names = new ArrayList<>();
         for(CollectionInfo collection : collections) {

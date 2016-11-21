@@ -19,7 +19,7 @@
                         <Font size="14.0" />
                      </font>
                   </Label>
-                     <ComboBox fx:id="cboxCollectionSelect" onAction="#getCollectionAttributes" prefHeight="25.0" prefWidth="150.0" />
+                     <ComboBox fx:id="cboxCollectionSelect" onAction="#chooseCollection" prefHeight="25.0" prefWidth="150.0" />
                  </children>
               </HBox>
             <Label text="Build a find query">
@@ -28,9 +28,14 @@
                </font>
             </Label>
             <HBox fx:id="hboxQueryBuilder" alignment="CENTER_LEFT" minHeight="25.0" prefHeight="25.0" prefWidth="590.0" style="-fx-border-color: #b5b5b5;" />
-              <HBox prefHeight="25.0" prefWidth="200.0">
-                  <Button mnemonicParsing="false" onAction="#executeQuery" text="Execute query"/>
-              </HBox>
+              <BorderPane prefHeight="10.0" prefWidth="200.0">
+                  <right>
+                      <Button mnemonicParsing="false" onAction="#executeQuery" text="Execute query"/>
+                  </right>
+                  <left>
+                      <Button mnemonicParsing="false" onAction="#clearQuery" text="Clear query"/>
+                  </left>
+              </BorderPane>
             <Label text="Last executed query:">
                <font>
                   <Font size="14.0" />
